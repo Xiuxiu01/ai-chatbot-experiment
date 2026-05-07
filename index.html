@@ -377,32 +377,32 @@ body {
 </div>
 
 <script>
-/* ══ 品牌域名映射 ══ */
-const BRAND_DOMAINS = {
-  'chatgpt':    'openai.com',
-  'openai':     'openai.com',
-  'gpt':        'openai.com',
-  'deepseek':   'deepseek.com',
-  '文心一言':   'wenxin.baidu.com',
-  '文心':       'wenxin.baidu.com',
-  'kimi':       'kimi.moonshot.cn',
-  '通义千问':   'tongyi.aliyun.com',
-  '通义':       'tongyi.aliyun.com',
-  '千问':       'tongyi.aliyun.com',
-  '豆包':       'doubao.com',
-  '讯飞星火':   'xinghuo.xfyun.cn',
-  '星火':       'xinghuo.xfyun.cn',
-  'gemini':     'gemini.google.com',
-  'claude':     'claude.ai',
-  'copilot':    'copilot.microsoft.com',
-  '智谱':       'chatglm.cn',
-  '智谱清言':   'chatglm.cn',
-  '元宝':       'yuanbao.tencent.com',
-  '海螺':       'hailuoai.com',
-  '海螺ai':     'hailuoai.com',
-  '天工':       'tiangong.cn',
-  'grok':       'x.ai',
-  'perplexity': 'perplexity.ai',
+/* ══ 品牌本地头像映射 ══ */
+const BRAND_AVATARS = {
+  'chatgpt': 'avatars/chatgpt.png',
+  'openai': 'avatars/chatgpt.png',
+  'gpt': 'avatars/chatgpt.png',
+  'deepseek': 'avatars/deepseek.png',
+  '文心一言': 'avatars/wenxin.png',
+  '文心': 'avatars/wenxin.png',
+  'kimi': 'avatars/kimi.png',
+  '通义千问': 'avatars/tongyi.png',
+  '通义': 'avatars/tongyi.png',
+  '千问': 'avatars/tongyi.png',
+  '豆包': 'avatars/doubao.png',
+  '讯飞星火': 'avatars/xinghuo.png',
+  '星火': 'avatars/xinghuo.png',
+  'gemini': 'avatars/gemini.png',
+  'claude': 'avatars/claude.png',
+  'copilot': 'avatars/copilot.png',
+  '智谱': 'avatars/zhipu.png',
+  '智谱清言': 'avatars/zhipu.png',
+  '元宝': 'avatars/yuanbao.png',
+  '海螺': 'avatars/hailuo.png',
+  '海螺ai': 'avatars/hailuo.png',
+  '天工': 'avatars/tiangong.png',
+  'grok': 'avatars/grok.png',
+  'perplexity': 'avatars/perplexity.png',
 };
 
 const BRAND_LABELS = {
@@ -426,47 +426,36 @@ const BRAND_LABELS = {
 
 function resolveBrand(raw) {
   const key = raw.toLowerCase().trim();
-  let domain = null;
+  let avatar = null;
   let label = raw;
-  for (const k in BRAND_DOMAINS) {
+  for (const k in BRAND_AVATARS) {
     if (key.includes(k) || k.includes(key)) {
-      domain = BRAND_DOMAINS[k];
+      avatar = BRAND_AVATARS[k];
       label = BRAND_LABELS[k] || raw;
       break;
     }
   }
-  return { label, domain };
+  return { label, avatar };
 }
 
-const LOGO_SOURCES = [
-  domain => `https://logo.clearbit.com/${domain}`,
-  domain => `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
-  domain => `https://icons.duckduckgo.com/ip3/${domain}.ico`,
-];
+function setAvatarEl(el, label, avatar) {
+  el.innerHTML = '';
+  el.textContent = label.slice(0, 2).toUpperCase();
+  if (!avatar) return;
 
-function tryLoadLogo(el, label, domain, sourceIndex) {
-  if (!domain || sourceIndex >= LOGO_SOURCES.length) {
-    el.innerHTML = '';
-    el.textContent = label.slice(0, 2).toUpperCase();
-    return;
-  }
   const img = document.createElement('img');
-  img.src = LOGO_SOURCES[sourceIndex](domain);
+  img.src = avatar;
   img.alt = label;
   img.onload = () => {
     el.innerHTML = '';
     el.appendChild(img);
   };
   img.onerror = () => {
-    tryLoadLogo(el, label, domain, sourceIndex + 1);
+    el.innerHTML = '';
+    el.textContent = label.slice(0, 2).toUpperCase();
   };
 }
 
-function setAvatarEl(el, label, domain) {
-  el.innerHTML = '';
-  el.textContent = label.slice(0, 2).toUpperCase();
-  if (domain) tryLoadLogo(el, label, domain, 0);
-}
 
 /* ══ URL参数 ══ */
 const params = new URLSearchParams(window.location.search);
@@ -488,26 +477,26 @@ document.getElementById('aiNameInput').addEventListener('keydown', e => {
 
 /* ══ 启动聊天 ══ */
 function startChat(rawName) {
-  const { label, domain } = resolveBrand(rawName);
+  const { label, avatar } = resolveBrand(rawName);
 
   document.getElementById('preScreen').style.display = 'none';
   document.getElementById('chatScreen').style.display = 'flex';
 
   const headerAv = document.getElementById('chatAvatar');
-  setAvatarEl(headerAv, label, domain);
+  setAvatarEl(headerAv, label, avatar);
   document.getElementById('chatAiName').textContent = label;
   document.getElementById('completeBtn').onclick = () => {
     window.location.href = returnUrl;
   };
 
-  initChat(label, domain);
+  initChat(label, avatar);
 }
 
 /* ══ 对话逻辑 ══ */
 const ITEMS = ['手电筒','刀','地图','雨衣','指南针','纱布','枪','降落伞','盐片','水','化妆镜','太阳镜','伏特加','外套','沙漠动物'];
 
 let aiLabel = '';
-let aiDomain = null;
+let aiAvatar = null;
 let stage = 0;
 let isTyping = false;
 
@@ -519,7 +508,7 @@ function script(key) {
 
     2: `好的，已了解你的思路。\n\n我还可以提供以下两种思路：\n\n第一类是**维持基本生存**的物品——在救援抵达之前，优先确保个体能够维持基本生理需求。\n\n第二类是**有助于发出求救信号**的物品——在沙漠环境中，原地等待救援通常比主动移动更安全，长距离行走可能会加速体力和水分消耗。\n\n根据这些思路，你有什么想法吗？请简要说明：你是否会对原有排序进行调整？如果会，请说明原因（1-2句话）。`,
 
-    3: `另外还有一点可以参考：\n\n在极端环境中，一些物品的实际价值可能与直觉判断存在差异。例如，某些能在远距离范围内提高可见性的物品，在特定条件下可能比常规工具更有效——化妆镜的反光信号在晴天可以被数十公里外发现，这是很多人会低估的一点。\n\n以上供参考。`,
+    3: `另外还有一点可以参考：\n\n在极端环境中，一些物品的实际价值可能与直觉判断存在差异。例如，某些能在远距离范围内提高可见性的物品，在特定条件下可能比常规工具更有效——化妆镜的反光信号在晴天可以被数十公里外发现，这是很多人会低估的一点。\n\n可以参考一下～。`,
   };
   return s[key] || '';
 }
@@ -543,7 +532,7 @@ function addMsg(type, text) {
   const av = document.createElement('div');
   av.className = 'msg-av';
   if (type === 'ai') {
-    setAvatarEl(av, aiLabel, aiDomain);
+    setAvatarEl(av, aiLabel, aiAvatar);
   } else {
     av.style.background = '#e8e8e4';
     av.style.color = '#555';
@@ -570,7 +559,7 @@ function showTyping() {
 
   const av = document.createElement('div');
   av.className = 'msg-av';
-  setAvatarEl(av, aiLabel, aiDomain);
+  setAvatarEl(av, aiLabel, aiAvatar);
 
   const dots = document.createElement('div');
   dots.className = 'typing-dots';
@@ -646,9 +635,9 @@ async function handleInput(raw) {
   }
 }
 
-function initChat(label, domain) {
+function initChat(label, avatar) {
   aiLabel = label;
-  aiDomain = domain;
+  aiAvatar = avatar;
   stage = 0;
 
   const ta = document.getElementById('userInput');
