@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI协作任务</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #f5f5f0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 16px;
+}
+
+/* ── 前置页 ── */
+#preScreen { width: 100%; max-width: 480px; }
+
+.pre-card {
+  background: #fff;
+  border: 1px solid #e8e8e4;
+  border-radius: 14px;
+  padding: 36px 32px;
+}
+
+.pre-card h1 {
+  font-size: 17px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+}
+
+.pre-card .desc {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.7;
+  margin-bottom: 28px;
+}
+
+.input-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #444;
+  margin-bottom: 8px;
+}
+
+.ai-input {
+  width: 100%;
+  border: 1px solid #e0e0dc;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-family: inherit;
+  color: #1a1a1a;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.ai-input:focus { border-color: #1a1a2e; }
+.ai-input::placeholder { color: #bbb; }
+
+.example-note {
+  font-size: 12px;
+  color: #999;
+  margin-top: 8px;
+  line-height: 1.6;
+}
+
+.confirm-btn {
+  width: 100%;
+  background: #1a1a2e;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 15px;
+  font-family: inherit;
+  cursor: pointer;
+  font-weight: 500;
+  margin-top: 24px;
+  transition: opacity 0.2s;
+}
+.confirm-btn:hover { opacity: 0.88; }
+
+.error-msg {
+  font-size: 13px;
+  color: #e24b4a;
+  margin-top: 6px;
+  display: none;
+}
+
+/* ── 聊天页 ── */
+#chatScreen {
+  width: 100%;
+  max-width: 680px;
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chat-header {
+  background: #fff;
+  border: 1px solid #e8e8e4;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ai-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: #1a1a2e;
+}
+
+.ai-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 50%;
+}
+
+.ai-info h2 { font-size: 15px; font-weight: 600; color: #1a1a1a; }
+.ai-info p { font-size: 12px; color: #888; margin-top: 2px; }
+
+.status-dot {
+  width: 7px; height: 7px;
+  background: #22c55e;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 4px;
+}
+
+.chat-window {
+  background: #fff;
+  border: 1px solid #e8e8e4;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 500px;
+}
+
+.progress-bar { height: 3px; background: #f0f0ec; }
+.progress-fill {
+  height: 100%;
+  background: #1a1a2e;
+  transition: width 0.5s ease;
+  width: 0%;
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.msg {
+  display: flex;
+  gap: 10px;
+  max-width: 88%;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.msg.user { align-self: flex-end; flex-direction: row-reverse; }
+
+.msg-av {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  overflow: hidden;
+  background: #1a1a2e;
+  color: #fff;
+}
+
+.msg-av img {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  border-radius: 50%;
+}
+
+.msg.user .msg-av { background: #e8e8e4; color: #555; }
+
+.msg-bubble {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.65;
+  color: #1a1a1a;
+}
+
+.msg.ai .msg-bubble {
+  background: #f5f5f0;
+  border-bottom-left-radius: 4px;
+}
+
+.msg.user .msg-bubble {
+  background: #1a1a2e;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.typing { display: flex; gap: 10px; align-items: center; }
+
+.typing-dots {
+  display: flex; gap: 4px;
+  padding: 10px 14px;
+  background: #f5f5f0;
+  border-radius: 12px;
+  border-bottom-left-radius: 4px;
+}
+
+.typing-dots span {
+  width: 7px; height: 7px;
+  background: #aaa;
+  border-radius: 50%;
+  animation: bounce 1.2s infinite;
+}
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-7px); }
+}
+
+.input-area {
+  border-top: 1px solid #e8e8e4;
+  padding: 14px 16px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.input-area textarea {
+  flex: 1;
+  border: 1px solid #e0e0dc;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: none;
+  outline: none;
+  line-height: 1.5;
+  max-height: 120px;
+  color: #1a1a1a;
+}
+.input-area textarea:focus { border-color: #1a1a2e; }
+.input-area textarea:disabled { background: #f9f9f7; color: #aaa; cursor: not-allowed; }
+
+.send-btn {
+  width: 40px; height: 40px;
+  background: #1a1a2e;
+  border: none; border-radius: 8px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: opacity 0.2s;
+}
+.send-btn:hover { opacity: 0.85; }
+.send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.send-btn svg { width: 18px; height: 18px; fill: #fff; }
+
+.system-tip {
+  display: none;
+  background: #fffbe8;
+  border: 1px solid #f5d77c;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin: 0 16px 14px;
+  font-size: 13px;
+  color: #6b4e00;
+  line-height: 1.6;
+}
+
+.system-tip strong { color: #4a3700; }
+
+.complete-area { display: none; padding: 0 16px 16px; }
+
+.complete-btn {
+  width: 100%;
+  background: #1a1a2e;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 15px;
+  font-family: inherit;
+  cursor: pointer;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+.complete-btn:hover { opacity: 0.88; }
+</style>
+</head>
+<body>
+
+<!-- ══ 前置页 ══ -->
+<div id="preScreen">
+  <div class="pre-card">
+    <h1>进入协作任务</h1>
+    <p class="desc">请输入你刚才在问卷中描述的那个具体的AI名称。</p>
+
+    <p class="input-label">AI名称</p>
+    <input
+      type="text"
+      class="ai-input"
+      id="aiNameInput"
+      placeholder="输入AI名称"
+      maxlength="30"
+      autocomplete="off"
+    />
+    <p class="example-note">示例：ChatGPT、DeepSeek、文心一言、Kimi、通义千问、豆包……</p>
+    <p class="error-msg" id="errorMsg">请输入AI名称后继续</p>
+
+    <button class="confirm-btn" id="confirmBtn">确认，进入协作任务</button>
+  </div>
+</div>
+
+<!-- ══ 聊天页 ══ -->
+<div id="chatScreen">
+  <div class="chat-header">
+    <div class="ai-avatar" id="chatAvatar"></div>
+    <div class="ai-info">
+      <h2 id="chatAiName">AI助手</h2>
+      <p><span class="status-dot"></span>在线 · 协作任务进行中</p>
+    </div>
+  </div>
+
+  <div class="chat-window">
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="messages" id="messages"></div>
+
+    <div class="system-tip" id="systemTip">
+      📌 <strong>请截图保存当前完整的对话页面</strong>，然后点击下方按钮返回问卷给出最终答案。
+    </div>
+
+    <div class="complete-area" id="completeArea">
+      <button class="complete-btn" id="completeBtn">返回问卷</button>
+    </div>
+
+    <div class="input-area" id="inputArea">
+      <textarea id="userInput" rows="1" placeholder="输入你的回复…" disabled></textarea>
+      <button class="send-btn" id="sendBtn" disabled>
+        <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══ 品牌本地头像映射 ══ */
+const BRAND_AVATARS = {
+  'chatgpt': 'avatars/chatgpt.png',
+  'openai': 'avatars/chatgpt.png',
+  'gpt': 'avatars/chatgpt.png',
+  'deepseek': 'avatars/deepseek.png',
+  '文心一言': 'avatars/wenxin.png',
+  '文心': 'avatars/wenxin.png',
+  'kimi': 'avatars/kimi.png',
+  '通义千问': 'avatars/tongyi.png',
+  '通义': 'avatars/tongyi.png',
+  '千问': 'avatars/tongyi.png',
+  '豆包': 'avatars/doubao.png',
+  '讯飞星火': 'avatars/xinghuo.png',
+  '星火': 'avatars/xinghuo.png',
+  'gemini': 'avatars/gemini.png',
+  'claude': 'avatars/claude.png',
+  'copilot': 'avatars/copilot.png',
+  '智谱': 'avatars/zhipu.png',
+  '智谱清言': 'avatars/zhipu.png',
+  '元宝': 'avatars/yuanbao.png',
+  '海螺': 'avatars/hailuo.png',
+  '海螺ai': 'avatars/hailuo.png',
+  '天工': 'avatars/tiangong.png',
+  'grok': 'avatars/grok.png',
+  'perplexity': 'avatars/perplexity.png',
+};
+
+const BRAND_LABELS = {
+  'chatgpt': 'ChatGPT', 'openai': 'ChatGPT', 'gpt': 'ChatGPT',
+  'deepseek': 'DeepSeek',
+  '文心一言': '文心一言', '文心': '文心一言',
+  'kimi': 'Kimi',
+  '通义千问': '通义千问', '通义': '通义千问', '千问': '通义千问',
+  '豆包': '豆包',
+  '讯飞星火': '讯飞星火', '星火': '讯飞星火',
+  'gemini': 'Gemini',
+  'claude': 'Claude',
+  'copilot': 'Copilot',
+  '智谱': '智谱清言', '智谱清言': '智谱清言',
+  '元宝': '元宝',
+  '海螺': '海螺AI', '海螺ai': '海螺AI',
+  '天工': '天工',
+  'grok': 'Grok',
+  'perplexity': 'Perplexity',
+};
+
+function resolveBrand(raw) {
+  const key = raw.toLowerCase().trim();
+  let avatar = null;
+  let label = raw;
+  for (const k in BRAND_AVATARS) {
+    if (key.includes(k) || k.includes(key)) {
+      avatar = BRAND_AVATARS[k];
+      label = BRAND_LABELS[k] || raw;
+      break;
+    }
+  }
+  return { label, avatar };
+}
+
+function setAvatarEl(el, label, avatar) {
+  el.innerHTML = '';
+  el.textContent = label.slice(0, 2).toUpperCase();
+  if (!avatar) return;
+
+  const img = document.createElement('img');
+  img.src = avatar;
+  img.alt = label;
+  img.onload = () => {
+    el.innerHTML = '';
+    el.appendChild(img);
+  };
+  img.onerror = () => {
+    el.innerHTML = '';
+    el.textContent = label.slice(0, 2).toUpperCase();
+  };
+}
+
+
+/* ══ URL参数 ══ */
+const params = new URLSearchParams(window.location.search);
+const returnUrl = params.get('return') || '#';
+
+/* ══ 前置页 ══ */
+document.getElementById('confirmBtn').onclick = () => {
+  const raw = document.getElementById('aiNameInput').value.trim();
+  if (!raw) {
+    document.getElementById('errorMsg').style.display = 'block';
+    return;
+  }
+  startChat(raw);
+};
+
+document.getElementById('aiNameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('confirmBtn').click();
+});
+
+/* ══ 启动聊天 ══ */
+function startChat(rawName) {
+  const { label, avatar } = resolveBrand(rawName);
+
+  document.getElementById('preScreen').style.display = 'none';
+  document.getElementById('chatScreen').style.display = 'flex';
+
+  const headerAv = document.getElementById('chatAvatar');
+  setAvatarEl(headerAv, label, avatar);
+  document.getElementById('chatAiName').textContent = label;
+  document.getElementById('completeBtn').onclick = () => {
+    window.location.href = returnUrl;
+  };
+
+  initChat(label, avatar);
+}
+
+/* ══ 对话逻辑 ══ */
+const ITEMS = ['手电筒','刀','地图','雨衣','指南针','纱布','枪','降落伞','盐片','水','化妆镜','太阳镜','伏特加','外套','沙漠动物'];
+
+let aiLabel = '';
+let aiAvatar = null;
+let stage = 0;
+let isTyping = false;
+
+function script(key) {
+  const s = {
+    0: `你好，这里是${aiLabel}，先说说你的想法吧。\n\n这15件物品中：手电筒 · 刀 · 地图 · 雨衣 · 指南针 · 一包纱布 · 一把装有子弹的枪 · 红白相间的降落伞 · 一瓶盐片 · 两瓶水 · 一面化妆镜 · 两副太阳镜 · 两瓶伏特加 · 两件外套 · 《沙漠动物》一书。\n\n你认为最重要的5件物品是什么？并简要说明每件物品你选择它的原因。`,
+
+    gate1: `请具体列出5件物品的名称，并说明你的理由。`,
+
+    2: `好的，已了解你的思路。\n\n我还可以提供以下两种思路：\n\n第一类是**维持基本生存**的物品——在救援抵达之前，优先确保个体能够维持基本生理需求。\n\n第二类是**有助于发出求救信号**的物品——在沙漠环境中，原地等待救援通常比主动移动更安全，长距离行走可能会加速体力和水分消耗。\n\n根据这些思路，你有什么想法吗？请简要说明：你是否会对原有排序进行调整？如果会，请说明原因（1-2句话）。`,
+
+    3: `另外还有一点可以参考：\n\n在极端环境中，一些物品的实际价值可能与直觉判断存在差异。例如，某些能在远距离范围内提高可见性的物品，在特定条件下可能比常规工具更有效——化妆镜的反光信号在晴天可以被数十公里外发现，这是很多人会低估的一点。\n\n以上供参考。`,
+  };
+  return s[key] || '';
+}
+
+function hasItem(text) { return ITEMS.filter(k => text.includes(k)).length >= 3; }
+
+function setProgress(p) {
+  document.getElementById('progressFill').style.width = p + '%';
+}
+
+function scrollDown() {
+  const m = document.getElementById('messages');
+  m.scrollTop = m.scrollHeight;
+}
+
+function addMsg(type, text) {
+  const msgs = document.getElementById('messages');
+  const wrap = document.createElement('div');
+  wrap.className = `msg ${type}`;
+
+  const av = document.createElement('div');
+  av.className = 'msg-av';
+  if (type === 'ai') {
+    setAvatarEl(av, aiLabel, aiAvatar);
+  } else {
+    av.style.background = '#e8e8e4';
+    av.style.color = '#555';
+    av.textContent = '我';
+  }
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.innerHTML = text
+    .replace(/\n/g, '<br>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+  wrap.appendChild(av);
+  wrap.appendChild(bubble);
+  msgs.appendChild(wrap);
+  scrollDown();
+}
+
+function showTyping() {
+  const msgs = document.getElementById('messages');
+  const wrap = document.createElement('div');
+  wrap.className = 'typing';
+  wrap.id = 'typingEl';
+
+  const av = document.createElement('div');
+  av.className = 'msg-av';
+  setAvatarEl(av, aiLabel, aiAvatar);
+
+  const dots = document.createElement('div');
+  dots.className = 'typing-dots';
+  dots.innerHTML = '<span></span><span></span><span></span>';
+
+  wrap.appendChild(av);
+  wrap.appendChild(dots);
+  msgs.appendChild(wrap);
+  scrollDown();
+}
+
+function removeTyping() {
+  const el = document.getElementById('typingEl');
+  if (el) el.remove();
+}
+
+function disableInput() {
+  document.getElementById('userInput').disabled = true;
+  document.getElementById('sendBtn').disabled = true;
+}
+
+function enableInput() {
+  const ta = document.getElementById('userInput');
+  ta.disabled = false;
+  document.getElementById('sendBtn').disabled = false;
+  ta.focus();
+}
+
+async function aiSay(key) {
+  isTyping = true;
+  disableInput();
+  showTyping();
+  await new Promise(r => setTimeout(r, 1200 + Math.random() * 800));
+  removeTyping();
+  const text = script(key);
+  if (text) addMsg('ai', text);
+  isTyping = false;
+}
+
+async function handleInput(raw) {
+  if (isTyping) return;
+  const t = raw.trim();
+  if (!t) return;
+
+  document.getElementById('userInput').value = '';
+  document.getElementById('userInput').style.height = 'auto';
+  addMsg('user', t);
+  disableInput();
+
+  if (stage === 1) {
+    if (!hasItem(t)) {
+      await aiSay('gate1');
+      enableInput();
+      return;
+    }
+    stage = 2;
+    setProgress(50);
+    await aiSay(2);
+    stage = 3;
+    enableInput();
+    return;
+  }
+
+  if (stage === 3) {
+    setProgress(90);
+    await aiSay(3);
+    stage = 4;
+    setProgress(100);
+    document.getElementById('inputArea').style.display = 'none';
+    document.getElementById('systemTip').style.display = 'block';
+    document.getElementById('completeArea').style.display = 'block';
+    return;
+  }
+}
+
+function initChat(label, avatar) {
+  aiLabel = label;
+  aiAvatar = avatar;
+  stage = 0;
+
+  const ta = document.getElementById('userInput');
+  document.getElementById('sendBtn').onclick = () => handleInput(ta.value);
+  ta.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleInput(ta.value);
+    }
+  });
+  ta.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  });
+
+  setTimeout(async () => {
+    await aiSay(0);
+    stage = 1;
+    setProgress(20);
+    enableInput();
+  }, 600);
+}
+</script>
+</body>
+</html>
