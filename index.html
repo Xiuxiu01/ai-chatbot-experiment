@@ -440,18 +440,21 @@ function resolveBrand(raw) {
 
 function setAvatarEl(el, label, avatar) {
   el.innerHTML = '';
+  el.style.background = '';
   el.textContent = label.slice(0, 2).toUpperCase();
   if (!avatar) return;
 
   const img = document.createElement('img');
   img.src = avatar;
   img.alt = label;
-  img.onload = () => {
+img.onload = () => {
     el.innerHTML = '';
+    el.style.background = '#fff';
     el.appendChild(img);
   };
-  img.onerror = () => {
+img.onerror = () => {
     el.innerHTML = '';
+    el.style.background = '';
     el.textContent = label.slice(0, 2).toUpperCase();
   };
 }
